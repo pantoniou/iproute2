@@ -98,7 +98,7 @@ static void usage(void)
 	fprintf(stderr, "TIME := NUMBER[s|ms]\n");
 	fprintf(stderr, "BOOL := [1|0]\n");
 	fprintf(stderr, "FEATURES := ecn\n");
-	fprintf(stderr, "ENCAPTYPE := [ mpls | ip | ip6 ]\n");
+	fprintf(stderr, "ENCAPTYPE := [ mpls | unet | ip | ip6 ]\n");
 	fprintf(stderr, "ENCAPHDR := [ MPLSLABEL ]\n");
 	exit(-1);
 }
@@ -680,7 +680,7 @@ int print_route(const struct sockaddr_nl *who, struct nlmsghdr *n, void *arg)
 				fprintf(fp, " ");
 			} else {
 				fprintf(fp, "dev %s ", ll_index_to_name(nh->rtnh_ifindex));
-				if (r->rtm_family != AF_MPLS)
+				if (r->rtm_family != AF_MPLS && r->rtm_family != AF_UNET)
 					fprintf(fp, "weight %d ",
 						nh->rtnh_hops+1);
 			}
@@ -1250,7 +1250,8 @@ static int iproute_modify(int cmd, unsigned int flags, int argc, char **argv)
 	}
 	if (!scope_ok) {
 		if (req.r.rtm_family == AF_INET6 ||
-		    req.r.rtm_family == AF_MPLS)
+		    req.r.rtm_family == AF_MPLS ||
+		    req.r.rtm_family == AF_UNET)
 			req.r.rtm_scope = RT_SCOPE_UNIVERSE;
 		else if (req.r.rtm_type == RTN_LOCAL ||
 			 req.r.rtm_type == RTN_NAT)
@@ -1268,7 +1269,8 @@ static int iproute_modify(int cmd, unsigned int flags, int argc, char **argv)
 		}
 	}
 
-	if (!type_ok && req.r.rtm_family == AF_MPLS)
+	if (!type_ok && (req.r.rtm_family == AF_MPLS ||
+			 req.r.rtm_family == AF_UNET))
 		req.r.rtm_type = RTN_UNICAST;
 
 	if (rtnl_talk(&rth, &req.n, NULL, 0) < 0)

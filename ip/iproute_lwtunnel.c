@@ -19,6 +19,7 @@
 #include <linux/ila.h>
 #include <linux/lwtunnel.h>
 #include <linux/mpls_iptunnel.h>
+#include <linux/unet_iptunnel.h>
 #include <errno.h>
 
 #include "rt_names.h"
@@ -69,6 +70,8 @@ static int read_encap_type(const char *name)
 		return LWTUNNEL_ENCAP_ILA;
 	else if (strcmp(name, "bpf") == 0)
 		return LWTUNNEL_ENCAP_BPF;
+	else if (strcmp(name, "unet") == 0)
+		return LWTUNNEL_ENCAP_UNET;
 	else if (strcmp(name, "help") == 0)
 		encap_type_usage();
 
@@ -85,6 +88,18 @@ static void print_encap_mpls(FILE *fp, struct rtattr *encap)
 		fprintf(fp, " %s ",
 			format_host_rta(AF_MPLS, tb[MPLS_IPTUNNEL_DST]));
 }
+
+static void print_encap_unet(FILE *fp, struct rtattr *encap)
+{
+	struct rtattr *tb[UNET_IPTUNNEL_MAX+1];
+
+	parse_rtattr_nested(tb, UNET_IPTUNNEL_MAX, encap);
+
+	if (tb[UNET_IPTUNNEL_DST])
+		fprintf(fp, " %s ",
+			format_host_rta(AF_UNET, tb[UNET_IPTUNNEL_DST]));
+}
+
 
 static void print_encap_ip(FILE *fp, struct rtattr *encap)
 {
@@ -238,6 +253,9 @@ void lwt_print_encap(FILE *fp, struct rtattr *encap_type,
 	case LWTUNNEL_ENCAP_BPF:
 		print_encap_bpf(fp, encap);
 		break;
+	case LWTUNNEL_ENCAP_UNET:
+		print_encap_unet(fp, encap);
+		break;
 	}
 }
 
@@ -256,6 +274,30 @@ static int parse_encap_mpls(struct rtattr *rta, size_t len,
 	}
 
 	rta_addattr_l(rta, len, MPLS_IPTUNNEL_DST, &addr.data,
+		      addr.bytelen);
+
+	*argcp = argc;
+	*argvp = argv;
+
+	return 0;
+}
+
+static int parse_encap_unet(struct rtattr *rta, size_t len,
+			    int *argcp, char ***argvp)
+{
+	inet_prefix addr;
+	int argc = *argcp;
+	char **argv = *argvp;
+
+	fprintf(stderr, "%s\n", __func__);
+	if (get_addr(&addr, *argv, AF_UNET)) {
+		fprintf(stderr,
+			"Error: a unet address is expected rather than \"%s\".\n",
+			*argv);
+		exit(1);
+	}
+
+	rta_addattr_l(rta, len, UNET_IPTUNNEL_DST, &addr.data,
 		      addr.bytelen);
 
 	*argcp = argc;
@@ -543,6 +585,7 @@ int lwt_parse_encap(struct rtattr *rta, size_t len, int *argcp, char ***argvp)
 	char **argv = *argvp;
 	__u16 type;
 
+	fprintf(stderr, "%s\n", __func__);
 	NEXT_ARG();
 	type = read_encap_type(*argv);
 	if (!type)
@@ -551,7 +594,7 @@ int lwt_parse_encap(struct rtattr *rta, size_t len, int *argcp, char ***argvp)
 	NEXT_ARG();
 	if (argc <= 1) {
 		fprintf(stderr,
-			"Error: unexpected end of line after \"encap\"\n");
+			"Error: unexpected end of line after \"encap\" (%d - %s)\n", argc, *argv);
 		exit(-1);
 	}
 
@@ -572,6 +615,8 @@ int lwt_parse_encap(struct rtattr *rta, size_t len, int *argcp, char ***argvp)
 	case LWTUNNEL_ENCAP_BPF:
 		if (parse_encap_bpf(rta, len, &argc, &argv) < 0)
 			exit(-1);
+	case LWTUNNEL_ENCAP_UNET:
+		parse_encap_unet(rta, len, &argc, &argv);
 		break;
 	default:
 		fprintf(stderr, "Error: unsupported encap type\n");

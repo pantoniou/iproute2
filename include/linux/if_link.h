@@ -4,6 +4,11 @@
 #include <linux/types.h>
 #include <linux/netlink.h>
 
+/* in linux/netdevice.h */
+#ifndef MAX_ADDR_LEN
+#define MAX_ADDR_LEN 32
+#endif
+
 /* This struct should be in sync with struct rtnl_link_stats64 */
 struct rtnl_link_stats {
 	__u32	rx_packets;		/* total packets received	*/
@@ -164,8 +169,10 @@ enum {
 #define IFLA_MAX (__IFLA_MAX - 1)
 
 /* backwards compatibility for userspace */
+#ifndef __KERNEL__
 #define IFLA_RTA(r)  ((struct rtattr*)(((char*)(r)) + NLMSG_ALIGN(sizeof(struct ifinfomsg))))
 #define IFLA_PAYLOAD(n) NLMSG_PAYLOAD(n,sizeof(struct ifinfomsg))
+#endif
 
 enum {
 	IFLA_INET_UNSPEC,
@@ -641,7 +648,7 @@ enum {
 
 struct ifla_vf_mac {
 	__u32 vf;
-	__u8 mac[32]; /* MAX_ADDR_LEN */
+	__u8 mac[MAX_ADDR_LEN]; /* MAX_ADDR_LEN */
 };
 
 struct ifla_vf_vlan {
@@ -889,5 +896,18 @@ enum {
 };
 
 #define IFLA_XDP_MAX (__IFLA_XDP_MAX - 1)
+
+/* uNet section */
+enum {
+	IFLA_UNET_UNSPEC,
+	IFLA_UNET_LOCAL_ENTITY,
+	IFLA_UNET_REMOTE_ENTITY,
+	IFLA_UNET_LOCAL,
+	IFLA_UNET_REMOTE,
+	IFLA_UNET_TTL,
+	IFLA_UNET_TOS,
+	__IFLA_UNET_MAX
+};
+#define IFLA_UNET_MAX	(__IFLA_UNET_MAX - 1)
 
 #endif /* _LINUX_IF_LINK_H */

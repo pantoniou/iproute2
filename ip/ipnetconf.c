@@ -86,6 +86,9 @@ int print_netconf(const struct sockaddr_nl *who, struct rtnl_ctrl_data *ctrl,
 	case AF_MPLS:
 		fprintf(fp, "mpls ");
 		break;
+	case AF_UNET:
+		fprintf(fp, "unet ");
+		break;
 	default:
 		fprintf(fp, "unknown ");
 		break;

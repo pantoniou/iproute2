@@ -27,6 +27,7 @@
 #include <linux/param.h>
 #include <linux/if_arp.h>
 #include <linux/mpls.h>
+#include <linux/unet.h>
 #include <time.h>
 #include <sys/time.h>
 #include <errno.h>
@@ -472,7 +473,8 @@ int get_addr_1(inet_prefix *addr, const char *name, int family)
 	if (strcmp(name, "default") == 0 ||
 	    strcmp(name, "all") == 0 ||
 	    strcmp(name, "any") == 0) {
-		if ((family == AF_DECnet) || (family == AF_MPLS))
+		if ((family == AF_DECnet) || (family == AF_MPLS) ||
+		    (family == AF_UNET))
 			return -1;
 		addr->family = family;
 		addr->bytelen = (family == AF_INET6 ? 16 : 4);
@@ -535,6 +537,20 @@ int get_addr_1(inet_prefix *addr, const char *name, int family)
 		return 0;
 	}
 
+	if (family == AF_UNET) {
+		struct unet_addr *ua = (void *)addr->data;
+
+		addr->family = AF_UNET;
+		if (unet_pton(AF_UNET, name, ua) <= 0) {
+			printf("%s:%d %s FAIL\n", __FILE__, __LINE__, __func__);
+			return -1;
+		}
+		addr->bytelen = offsetof(struct unet_addr, addr_buffer) +
+				unet_addr_buffer_len(ua);
+		addr->bitlen = -1;
+		return 0;
+	}
+
 	addr->family = AF_INET;
 	if (family != AF_UNSPEC && family != AF_INET)
 		return -1;
@@ -581,7 +597,8 @@ int get_prefix_1(inet_prefix *dst, char *arg, int family)
 	if (strcmp(arg, "default") == 0 ||
 	    strcmp(arg, "any") == 0 ||
 	    strcmp(arg, "all") == 0) {
-		if ((family == AF_DECnet) || (family == AF_MPLS))
+		if ((family == AF_DECnet) || (family == AF_MPLS) ||
+		    (family == AF_UNET))
 			return -1;
 		dst->family = family;
 		dst->bytelen = 0;
@@ -788,6 +805,8 @@ const char *rt_addr_n2a_r(int af, int len,
 	}
 	case AF_PACKET:
 		return ll_addr_n2a(addr, len, ARPHRD_VOID, buf, buflen);
+	case AF_UNET:
+		return unet_ntop(af, addr, buf, buflen);
 	default:
 		return "???";
 	}
@@ -816,6 +835,8 @@ int read_family(const char *name)
 		family = AF_IPX;
 	else if (strcmp(name, "mpls") == 0)
 		family = AF_MPLS;
+	else if (strcmp(name, "unet") == 0)
+		family = AF_UNET;
 	else if (strcmp(name, "bridge") == 0)
 		family = AF_BRIDGE;
 	return family;
@@ -837,6 +858,8 @@ const char *family_name(int family)
 		return "mpls";
 	if (family == AF_BRIDGE)
 		return "bridge";
+	if (family == AF_UNET)
+		return "unet";
 	return "???";
 }
 

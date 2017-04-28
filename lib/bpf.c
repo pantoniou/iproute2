@@ -464,7 +464,7 @@ int bpf_trace_pipe(void)
 
 		ret = read(fd, buff, sizeof(buff) - 1);
 		if (ret > 0) {
-			write(2, buff, ret);
+			(void)write(2, buff, ret);
 			fflush(stderr);
 		}
 	}

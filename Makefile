@@ -40,6 +40,9 @@ ADDLIB+=ipx_ntop.o ipx_pton.o
 #options for mpls
 ADDLIB+=mpls_ntop.o mpls_pton.o
 
+#options for unet
+ADDLIB+=unet_ntop_pton.o
+
 CC := gcc
 HOSTCC ?= $(CC)
 DEFINES += -D_GNU_SOURCE

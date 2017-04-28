@@ -29,6 +29,7 @@
 #include <linux/sockios.h>
 #include <stdbool.h>
 #include <linux/mpls.h>
+#include <linux/unet.h>
 
 #include "rt_names.h"
 #include "utils.h"
@@ -110,7 +111,8 @@ void iplink_usage(void)
 			"TYPE := { vlan | veth | vcan | dummy | ifb | macvlan | macvtap |\n"
 			"          bridge | bond | team | ipoib | ip6tnl | ipip | sit | vxlan |\n"
 			"          gre | gretap | ip6gre | ip6gretap | vti | nlmon | team_slave |\n"
-			"          bond_slave | ipvlan | geneve | bridge_slave | vrf | macsec }\n");
+			"          bond_slave | ipvlan | geneve | bridge_slave | vrf | macsec |\n"
+			"          unet }\n");
 	}
 	exit(-1);
 }
@@ -1396,6 +1398,37 @@ static void print_mpls_stats(FILE *fp, struct rtattr *attr)
 	fprintf(fp, "\n");
 }
 
+static void print_unet_stats(FILE *fp, struct rtattr *attr)
+{
+	struct rtattr *urtb[UNET_STATS_MAX+1];
+	struct unet_link_stats *stats;
+
+	parse_rtattr(urtb, UNET_STATS_MAX, RTA_DATA(attr),
+		     RTA_PAYLOAD(attr));
+	if (!urtb[UNET_STATS_LINK])
+		return;
+
+	stats = RTA_DATA(urtb[MPLS_STATS_LINK]);
+
+	fprintf(fp, "    unet:\n");
+	fprintf(fp, "        RX: bytes  packets  errors  dropped  noroute\n");
+	fprintf(fp, "        ");
+	print_num(fp, 10, stats->rx_bytes);
+	print_num(fp, 8, stats->rx_packets);
+	print_num(fp, 7, stats->rx_errors);
+	print_num(fp, 8, stats->rx_dropped);
+	print_num(fp, 7, stats->rx_noroute);
+	fprintf(fp, "\n");
+	fprintf(fp, "        TX: bytes  packets  errors  dropped\n");
+	fprintf(fp, "        ");
+	print_num(fp, 10, stats->tx_bytes);
+	print_num(fp, 8, stats->tx_packets);
+	print_num(fp, 7, stats->tx_errors);
+	print_num(fp, 7, stats->tx_dropped);
+	fprintf(fp, "\n");
+}
+
+
 static void print_af_stats_attr(FILE *fp, int ifindex, struct rtattr *attr)
 {
 	bool if_printed = false;
@@ -1417,6 +1450,9 @@ static void print_af_stats_attr(FILE *fp, int ifindex, struct rtattr *attr)
 		switch (i->rta_type) {
 		case AF_MPLS:
 			print_mpls_stats(fp, i);
+			break;
+		case AF_UNET:
+			print_unet_stats(fp, i);
 			break;
 		default:
 			fprintf(fp, "    unknown af(%d)\n", i->rta_type);

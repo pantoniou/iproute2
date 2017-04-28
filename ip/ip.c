@@ -52,11 +52,11 @@ static void usage(void)
 "where  OBJECT := { link | address | addrlabel | route | rule | neigh | ntable |\n"
 "                   tunnel | tuntap | maddress | mroute | mrule | monitor | xfrm |\n"
 "                   netns | l2tp | fou | macsec | tcp_metrics | token | netconf | ila |\n"
-"                   vrf }\n"
+"                   vrf | unet }\n"
 "       OPTIONS := { -V[ersion] | -s[tatistics] | -d[etails] | -r[esolve] |\n"
 "                    -h[uman-readable] | -iec |\n"
-"                    -f[amily] { inet | inet6 | ipx | dnet | mpls | bridge | link } |\n"
-"                    -4 | -6 | -I | -D | -B | -0 |\n"
+"                    -f[amily] { inet | inet6 | ipx | dnet | mpls | unet | bridge | link } |\n"
+"                    -4 | -6 | -I | -D | -M | -U | -B | -0 |\n"
 "                    -l[oops] { maximum-addr-flush-attempts } | -br[ief] |\n"
 "                    -o[neline] | -t[imestamp] | -ts[hort] | -b[atch] [filename] |\n"
 "                    -rc[vbuf] [size] | -n[etns] name | -a[ll] | -c[olor]}\n");
@@ -101,6 +101,7 @@ static const struct cmd {
 	{ "netns",	do_netns },
 	{ "netconf",	do_ipnetconf },
 	{ "vrf",	do_ipvrf},
+	{ "unet",	do_ipunet },
 	{ "help",	do_help },
 	{ 0 }
 };
@@ -221,6 +222,8 @@ int main(int argc, char **argv)
 			preferred_family = AF_MPLS;
 		} else if (strcmp(opt, "-B") == 0) {
 			preferred_family = AF_BRIDGE;
+		} else if (strcmp(opt, "-U") == 0) {
+			preferred_family = AF_UNET;
 		} else if (matches(opt, "-human") == 0 ||
 			   matches(opt, "-human-readable") == 0) {
 			++human_readable;
